@@ -80,10 +80,13 @@ class CPU:
         elif op == 'CMP':
             if self.reg[reg_a] < self.reg[reg_b]:
                 self.fl = 0b00000100
+
             elif self.reg[reg_a] > self.reg[reg_b]:
                 self.fl = 0b00000010
+
             elif self.reg[reg_a] == self.reg[reg_b]:
                 self.fl = 0b00000001
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -156,10 +159,12 @@ class CPU:
         self.pc += 3
 
     def op_JEQ(self, running):
+
         if self.fl == 0b00000001:
             # print('hit')
             reg_num = self.ram[self.pc + 1]
             self.pc = self.reg[reg_num]
+
         else:
             self.pc += 2
 
@@ -167,7 +172,8 @@ class CPU:
 
         if self.fl == 0b00000001:
             # print('equals')
-            self.pc + 2
+            self.pc += 2
+
         else:
             # print('not equals')
             reg_num = self.ram[self.pc + 1]
@@ -231,7 +237,7 @@ class CPU:
         # print("Reg: ", self.reg)
 
         while self.running:
-            self.trace()
+            # self.trace()
 
             instructions = self.ram_read(self.pc)
             # print(instructions)
