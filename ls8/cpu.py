@@ -13,6 +13,10 @@ PUSH = 0b01000101
 POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 class CPU:
     """Main CPU class."""
@@ -24,6 +28,8 @@ class CPU:
         self.ram = [0] * 256
         self.running = True
         self.branch_table = {}
+        self.fl = 0b00000000
+
         self.branch_table[LDI] = self.op_LDI
         self.branch_table[PRN] = self.op_PRN
         self.branch_table[HLT] = self.op_HLT
@@ -33,6 +39,10 @@ class CPU:
         self.branch_table[POP] = self.op_POP
         self.branch_table[CALL] = self.op_CALL
         self.branch_table[RET] = self.op_RET
+        self.branch_table[CMP] = self.op_CMP
+        self.branch_table[JMP] = self.op_JMP
+        self.branch_table[JEQ] = self.op_JEQ
+        self.branch_table[JNE] = self.op_JNE
 
         self.reg[SP] = 0xf4
 
@@ -66,7 +76,14 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
-            self.reg[reg_a] *= self.reg[reg_b]    
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == 'CMP':
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -100,6 +117,10 @@ class CPU:
     def ram_write(self, MDR, MAR):
         self.ram[MAR] = MDR
 
+    def op_JMP(self, running):
+        reg_num = self.ram[self.pc + 1]
+        self.pc = self.reg[reg_num]
+
     def op_LDI(self, running):
         reg_num = self.ram[self.pc + 1]
         value = self.ram[self.pc + 2]
@@ -125,6 +146,32 @@ class CPU:
         self.alu('ADD', reg_a, reg_b)
 
         self.pc += 3
+
+    def op_CMP(self, running):
+        reg_a = self.ram[self.pc + 1]
+        reg_b = self.ram[self.pc + 2]
+
+        self.alu('CMP', reg_a, reg_b)
+
+        self.pc += 3
+
+    def op_JEQ(self, running):
+        if self.fl == 0b00000001:
+            # print('hit')
+            reg_num = self.ram[self.pc + 1]
+            self.pc = self.reg[reg_num]
+        else:
+            self.pc += 2
+
+    def op_JNE(self, running):
+
+        if self.fl == 0b00000001:
+            # print('equals')
+            self.pc + 2
+        else:
+            # print('not equals')
+            reg_num = self.ram[self.pc + 1]
+            self.pc = self.reg[reg_num]
 
     def op_MUL(self, running):
         reg_a = self.ram[self.pc + 1]
@@ -184,10 +231,10 @@ class CPU:
         # print("Reg: ", self.reg)
 
         while self.running:
-            # self.trace()
+            self.trace()
 
             instructions = self.ram_read(self.pc)
-
+            # print(instructions)
             if instructions in self.branch_table:
                 self.branch_table[instructions](self.running)
             else:
